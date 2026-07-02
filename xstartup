@@ -5,6 +5,7 @@ vglclient &
 
 XFCE_PANEL_MIGRATE_DEFAULT=true startxfce4 &
 export PATH=$PATH:/mrtrix3/bin
+shopt -s nullglob
 
 #vglrun mrview `find $INPUT_DIR -name *.nii.gz` &
 if [ -f $INPUT_DIR/t1.nii.gz ]; then
@@ -21,6 +22,25 @@ fi
 
 if [ -f $INPUT_DIR/bold.nii.gz ]; then
     vglrun mrview -load $INPUT_DIR/bold.nii.gz -fullscreen &
+fi
+
+csd_files=("$INPUT_DIR"/lmax*.nii.gz)
+if [ ${#csd_files[@]} -gt 0 ]; then
+    IFS=$'\n' csd_files=($(printf '%s\n' "${csd_files[@]}" | sort -V))
+    unset IFS
+    mrview_args=()
+    for csd_file in "${csd_files[@]}"; do
+        mrview_args+=( -load "$csd_file" )
+    done
+
+    if [ -f "$INPUT_DIR/response.txt" ]; then
+        read -r response_line < "$INPUT_DIR/response.txt"
+        echo "Detected neuro/csd response: $response_line"
+    else
+        echo "Detected neuro/csd lmax volumes without response.txt metadata"
+    fi
+
+    vglrun mrview "${mrview_args[@]}" -fullscreen &
 fi
 
 if [ -f $INPUT_DIR/track.tck ]; then
